@@ -80,7 +80,7 @@ func (s *Server) HandleWorkflowStart(req *api.WorkflowStartRequest) (*api.Workfl
 	uu2 := uuid.New()
 	return &api.WorkflowStartResponse{
 		IssuingNonce: uu.String(),
-		IdpNonce:     uu2.String(),
+		IdpNonce:     "x" + uu2.String(),
 	}, nil
 }
 
