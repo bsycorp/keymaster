@@ -113,10 +113,9 @@ func main() {
 	}
 
 	// Now fix up the workflow URL
-	fixedWorkflowUrl := "https://workflow.int.btr.place/workflow/" + startResult.WorkflowId
 	log.Printf("------------------------------------------------------------------")
 	log.Printf("******************************************************************")
-	log.Printf("APPROVAL URL: %s", fixedWorkflowUrl)
+	log.Printf("APPROVAL URL: %s", startResult.WorkflowUrl)
 	log.Printf("******************************************************************")
 	log.Printf("------------------------------------------------------------------")
 
