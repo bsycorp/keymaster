@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/davecgh/go-spew/spew"
@@ -22,7 +23,11 @@ type Client struct {
 func NewClient(target string) *Client {
 	c := new(Client)
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{
+			EndpointResolver: endpoints.ResolverFunc(EndpointResolver),
+		},
 		SharedConfigState: session.SharedConfigEnable,
+
 	}))
 	c.FunctionName = target
 	c.lambdaClient = lambda.New(sess) // TODO: region? Or can that come from env?
