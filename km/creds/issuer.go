@@ -1,11 +1,15 @@
 package creds
 
 import (
+	"log"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/bsycorp/keymaster/km/api"
+	"github.com/bsycorp/keymaster/km/util"
 	"github.com/pkg/errors"
-	"log"
 )
 
 type issuer interface {
@@ -17,10 +21,9 @@ type Issuer struct {
 }
 
 func NewFromConfig(role *api.RoleConfig, config *api.Config) (*Issuer, error) {
-	sess, err := session.NewSession()
-	if err != nil {
-		return nil, err
-	}
+	sess := session.Must(session.NewSession(&aws.Config{
+		EndpointResolver: endpoints.ResolverFunc(util.EndpointResolver),
+	}))
 	var issuer Issuer
 	for _, credName := range role.Credentials {
 		credConfig := config.FindCredentialByName(credName)

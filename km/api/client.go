@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/bsycorp/keymaster/km/util"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 )
@@ -27,7 +28,7 @@ func NewClient(target string) *Client {
 	_, disableSSL := os.LookupEnv("KM_DISABLE_SSL")
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{
-			EndpointResolver: endpoints.ResolverFunc(EndpointResolver),
+			EndpointResolver: endpoints.ResolverFunc(util.EndpointResolver),
 			DisableSSL:       &disableSSL,
 		},
 		SharedConfigState: session.SharedConfigEnable,
