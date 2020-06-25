@@ -6,7 +6,7 @@ import (
 	"github.com/bsycorp/keymaster/km/api"
 	"github.com/bsycorp/keymaster/km/server"
 	"github.com/pkg/errors"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"os"
 )
 
