@@ -2,12 +2,16 @@ package api
 
 import (
 	"encoding/json"
+	"log"
+	"os"
+
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/bsycorp/keymaster/km/util"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
-	"log"
 )
 
 type Client struct {
@@ -16,12 +20,17 @@ type Client struct {
 	//    * Partial ARN - 123456789012:function:my-function.
 	FunctionName string
 	lambdaClient *lambda.Lambda
-	Debug int
+	Debug        int
 }
 
 func NewClient(target string) *Client {
 	c := new(Client)
+	_, disableSSL := os.LookupEnv("KM_DISABLE_SSL")
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{
+			EndpointResolver: endpoints.ResolverFunc(util.EndpointResolver),
+			DisableSSL:       &disableSSL,
+		},
 		SharedConfigState: session.SharedConfigEnable,
 	}))
 	c.FunctionName = target
@@ -31,7 +40,7 @@ func NewClient(target string) *Client {
 
 func (c *Client) Discovery(req *DiscoveryRequest) (*DiscoveryResponse, error) {
 	resp := new(DiscoveryResponse)
-	err := c.rpc(&Request{ Type: "discovery", Payload: req}, resp)
+	err := c.rpc(&Request{Type: "discovery", Payload: req}, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +49,7 @@ func (c *Client) Discovery(req *DiscoveryRequest) (*DiscoveryResponse, error) {
 
 func (c *Client) GetConfig(req *ConfigRequest) (*ConfigResponse, error) {
 	resp := new(ConfigResponse)
-	err := c.rpc(&Request{ Type: "config", Payload: req}, resp)
+	err := c.rpc(&Request{Type: "config", Payload: req}, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +62,7 @@ func (c *Client) DirectSamlAuth(req *DirectSamlAuthRequest) (*DirectAuthResponse
 
 func (c *Client) WorkflowStart(req *WorkflowStartRequest) (*WorkflowStartResponse, error) {
 	resp := new(WorkflowStartResponse)
-	err := c.rpc(&Request{ Type: "workflow_start", Payload: req}, resp)
+	err := c.rpc(&Request{Type: "workflow_start", Payload: req}, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +71,7 @@ func (c *Client) WorkflowStart(req *WorkflowStartRequest) (*WorkflowStartRespons
 
 func (c *Client) WorkflowAuth(req *WorkflowAuthRequest) (*WorkflowAuthResponse, error) {
 	resp := new(WorkflowAuthResponse)
-	err := c.rpc(&Request{ Type: "workflow_auth", Payload: req}, resp)
+	err := c.rpc(&Request{Type: "workflow_auth", Payload: req}, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +99,7 @@ func (c *Client) rpc(req interface{}, resp interface{}) error {
 	}
 	result, err := c.lambdaClient.Invoke(&lambda.InvokeInput{
 		FunctionName: aws.String(c.FunctionName),
-		Payload: payload,
+		Payload:      payload,
 	})
 	if err != nil {
 		return errors.Wrap(err, "rpc invoke")
