@@ -172,51 +172,87 @@ func ci(cmd *cobra.Command, args []string) {
 		log.Fatal(errors.Wrap(err, "error calling kmApi.WorkflowAuth"))
 	}
 
-	var iamCred *api.Cred
-	for _, cred := range creds.Credentials {
+	err = SaveIAMCredentials(creds.Credentials)
+	if err != nil {
+		log.Errorf( "error writing IAM credentials file: %v", err)
+	}
+}
+
+func SaveIAMCredentials(creds []api.Cred) error {
+	// Pluck IAM Creds
+	var iamCreds []*api.IAMCred
+	for _, cred := range creds {
 		if cred.Type == "iam" {
-			iamCred = &cred
-			break
+			iamCred, ok := cred.Value.(*api.IAMCred)
+			if !ok {
+				log.Errorf("failed to cast credential to IAM credential!")
+			} else {
+				iamCreds = append(iamCreds, iamCred)
+			}
 		}
 	}
-	if iamCred == nil {
-		log.Fatal("Got creds but no IAM cred?")
-	}
-	iamCredValue, ok := iamCred.Value.(*api.IAMCred)
-	if !ok {
-		log.Fatal("oops IAM cred is wrong type?")
+
+	// Handle the "set profile name" flag
+	if awsSetProfileNameFlag != "" {
+		if len(iamCreds) == 0 {
+			log.Warnf("no iam creds to write for profile: %v", awsSetProfileNameFlag)
+			return nil
+		} else {
+			if len(iamCreds) > 1 {
+				log.Warnf("got too many iam creds; expected 1, got: %v", len(iamCreds))
+			}
+			tmp := *iamCreds[0]
+			log.Printf("renaming iam credential %v -> %v", tmp.ProfileName, awsSetProfileNameFlag)
+			tmp.ProfileName = awsSetProfileNameFlag
+			iamCreds = []*api.IAMCred{&tmp}
+		}
 	}
 
+	// Format credentials
+	credEntries := make([]string, len(iamCreds))
+	for _, c := range iamCreds {
+		log.Printf("creating iam credential: %v", c.ProfileName)
+		credEntries = append(credEntries, FormatIAMCred(c))
+	}
+
+	return WriteIAMCredentialsFile(awsCredentialsFileFlag, credEntries)
+}
+
+func FormatIAMCred(iamCred *api.IAMCred) string {
 	awsCredsFmt := `[%s]
 aws_access_key_id = %s
 aws_secret_access_key = %s
 aws_session_token = %s
-# Keymaster issued, expires: %s
 `
-	exp := time.Unix(iamCred.Expiry, 0)
-	localAwsCreds := fmt.Sprintf(
+	strAwsCreds := fmt.Sprintf(
 		awsCredsFmt,
-		iamCredValue.ProfileName,
-		iamCredValue.AccessKeyId,
-		iamCredValue.SecretAccessKey,
-		iamCredValue.SessionToken,
-		exp,
+		iamCred.ProfileName,
+		iamCred.AccessKeyId,
+		iamCred.SecretAccessKey,
+		iamCred.SessionToken,
 	)
+	return strAwsCreds
+}
 
-
-	existingCreds, err := ioutil.ReadFile(awsCredentialsFileFlag)
+func WriteIAMCredentialsFile(credsFile string, credsToAdd []string) error {
+	extraCreds := make([]interface{}, len(credsToAdd))
+	for i := range credsToAdd {
+		extraCreds[i] = credsToAdd[i]
+	}
+	existingCreds, err := ioutil.ReadFile(credsFile)
 	if err != nil {
-		fmt.Printf("Failed to update local credentials: %v", err)
+		log.Printf("failed to read existing AWS credentials file: %v", err)
+		existingCreds = []byte{}
 	} else {
-		log.Printf("Found existing credentials file, appending..")
-		awsCredentialsIni, err := ini.Load(existingCreds, []byte(localAwsCreds))
+		awsCredentialsIni, err := ini.Load(existingCreds, extraCreds...)
 		if err != nil {
-			fmt.Printf("Failed to read existing local credentials: %v", err)
+			return errors.Wrap(err, "failed to load existing AWS credentials")
 		} else {
-			err = awsCredentialsIni.SaveTo(awsCredentialsFileFlag)
+			err = awsCredentialsIni.SaveTo(credsFile)
 			if err != nil {
-				fmt.Printf("Failed to update local credentials: %v", err)
+				return errors.Wrap(err, "failed to update AWS credentials file")
 			}
 		}
 	}
+	return nil
 }

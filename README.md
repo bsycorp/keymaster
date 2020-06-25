@@ -16,7 +16,7 @@ For ci, you need to specify the usual issuer and target role,
 as well as details to identify the source of your access request.
 
 ```
-km --issuer <issuing-lambda> --role deployment \
+km ci --issuer <issuing-lambda> --role deployment \
   --username smithb12 \
   --name "Bob Smith" \
   --email "bob.smith@awesome.com" \
