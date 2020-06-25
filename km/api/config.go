@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"github.com/bsycorp/keymaster/km/util"
 	"github.com/pkg/errors"
 )
 
@@ -15,7 +16,7 @@ type Config struct {
 	AccessControl AccessControlConfig `json:"access_control"`
 }
 
-func (c *Config) Normalise() {
+func (c *Config) NormaliseAndLoad() error {
 	// We default to version 1.0 if not specified
 	if c.Version == "" {
 		c.Version = "1.0"
@@ -31,6 +32,18 @@ func (c *Config) Normalise() {
 			}
 		}
 	}
+
+	// SAML certificates may be indirect, load them if they are
+	for _, idpConfig := range c.Idp {
+		if samlIdp, ok := idpConfig.Config.(*IdpConfigSaml); ok {
+			certData, err := util.Load(samlIdp.Certificate)
+			if err != nil {
+				return err
+			}
+			samlIdp.Certificate = string(certData)
+		}
+	}
+	return nil
 }
 
 func (c *Config) Validate() error {

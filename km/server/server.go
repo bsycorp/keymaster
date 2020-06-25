@@ -40,7 +40,10 @@ func (s *Server) Configure(config string) error {
 		}
 	}
 
-	tmpConfig.Normalise()
+	err = tmpConfig.NormaliseAndLoad()
+	if err != nil {
+		return err
+	}
 	err = tmpConfig.Validate()
 	if err != nil {
 		return err
