@@ -260,3 +260,24 @@ func TestCredentialsConfig_UnmarshalJSON(t *testing.T) {
 		assert.Equal(t, c, c2)
 	}
 }
+
+func TestCertificateLoading(t *testing.T) {
+	// Test that certificates get loaded via util.Load(), which should
+	// resolve file://, data:// and s3:// uris
+	c := Config{
+		Name:    "fooproject_nonprod",
+		Version: "1.0",
+		Idp: []IdpConfig{
+			{
+				Name: "nonprod",
+				Type: "saml",
+				Config: &IdpConfigSaml{
+					Certificate: "data://Zm9v",
+				},
+			},
+		},
+	}
+	err := c.NormaliseAndLoad()
+	assert.Nil(t, err)
+	assert.Equal(t, "foo", c.Idp[0].Config.(*IdpConfigSaml).Certificate)
+}
