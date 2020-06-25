@@ -2,10 +2,10 @@ package creds
 
 import (
 	"github.com/jonboulle/clockwork"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/ssh"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"os"
 	"os/exec"

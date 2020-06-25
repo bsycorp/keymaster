@@ -46,7 +46,7 @@ type WorkflowStartResponse struct {
 }
 
 type WorkflowAuthRequest struct {
-	Username string `json:"username"` // TODO: remove?
+	Username string `json:"username"`
 	Role string `json:"role"`
 	IssuingNonce string `json:"issuing_nonce"`
 	IdpNonce string `json:"idp_nonce"`

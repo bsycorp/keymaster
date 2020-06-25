@@ -6,10 +6,26 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/url"
+	"os"
+	"runtime"
 	"strings"
 )
+
+func UserHomeDir() (string, error) {
+	if os.Getenv("HOME") != "" {
+		return os.Getenv("HOME"), nil
+	} else if runtime.GOOS == "windows" {
+		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
+		if home == "" {
+			home = os.Getenv("USERPROFILE")
+		}
+		return home, nil
+	}
+	return "", errors.New("could not find user home directory, please set $HOME")
+}
 
 func Load(s string) ([]byte, error) {
 	if strings.HasPrefix(s, "s3://") {

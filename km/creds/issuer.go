@@ -1,8 +1,6 @@
 package creds
 
 import (
-	"log"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -10,6 +8,7 @@ import (
 	"github.com/bsycorp/keymaster/km/api"
 	"github.com/bsycorp/keymaster/km/util"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 type issuer interface {

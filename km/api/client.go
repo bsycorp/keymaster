@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
