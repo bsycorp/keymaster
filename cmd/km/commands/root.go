@@ -15,6 +15,7 @@ var roleFlag string
 var debugFlag int
 
 var awsCredentialsFileFlag string
+var awsSetProfileNameFlag string
 
 var rootCmd = &cobra.Command{
 	Use:   "km",
@@ -45,6 +46,7 @@ func init() {
 	defaultAwsCredentialsFile := homeDir + "/.aws/credentials"
 
 	rootCmd.PersistentFlags().StringVar(&awsCredentialsFileFlag, "aws-credentials-file", defaultAwsCredentialsFile, "path to AWS credentials file")
+	rootCmd.PersistentFlags().StringVar(&awsSetProfileNameFlag, "aws-set-profile-name", "", "set AWS profile output name (e.g. 'default')")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
