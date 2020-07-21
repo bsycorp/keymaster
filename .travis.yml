@@ -6,8 +6,6 @@ env:
   - GO111MODULE=on
 script:
   - make
-  - DOCKER_CONTENT_TRUST=1 docker build . -t bsycorp/km:${TRAVIS_BRANCH//\//-}
-  - DOCKER_CONTENT_TRUST=1 docker build . -f Dockerfile-slim -t bsycorp/km:${TRAVIS_BRANCH//\//-}-slim
 deploy:
   - provider: script
     script: bash ./scripts/docker-deploy.sh
