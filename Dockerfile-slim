@@ -1,0 +1,4 @@
+FROM scratch
+ADD build/km-linux-x64 /app/km
+
+CMD ["/app/km"]

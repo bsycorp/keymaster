@@ -1,0 +1,29 @@
+sudo: required
+services: docker
+language: go
+go: 1.x
+env:
+  - GO111MODULE=on
+script:
+  - make
+  - DOCKER_CONTENT_TRUST=1 docker build . -t bsycorp/km:${TRAVIS_BRANCH//\//-}
+  - DOCKER_CONTENT_TRUST=1 docker build . -f Dockerfile-slim -t bsycorp/km:${TRAVIS_BRANCH//\//-}-slim
+deploy:
+  - provider: script
+    script: bash ./scripts/docker-deploy.sh
+    on:
+      tags: true
+      repo: bsycorp/keymaster
+  - provider: releases
+    skip_cleanup: true
+    api_key:
+      secure: BTgSEib9TGUISiXai4Qng1+IKe0KhZ1oyPhh4kjeJ9mRl4UNV0JKMvzPbVFLBhM45wDw+NdOksvuUjnBvBoy2GI+7Lpj4C/qohgT714xbw7RL0UCYN6usf0p/H1WdV90In0CN4L09DnIGAoQVVWT8nq4xYvgarBrGJToUF5xdgjrus7F/3fVXD5bFQpDr0Ub7CyqbWhzNjQXzXdDn3iqWy74RRiSnfCybwSXgndJ/ToRkz895If4SYrr7AIlGG93Haeq3IAjysQ1g6v8TTu7xgZftParisgdGCTimdMtvbfW6k+tT52sFYKEj7dO7aNRDW207jQtCWoaJS8KN6Q52XVl/Ft4NEWCVTfXmThwx169plppn2OBG1k3E4auvp53grSknLcZJUN+ykjSigOu0WtkzKn0he/+xoa81KGTuZGZ99ccwYrWy6aW6CGGwi5Vs5Cp1m5mrqjNo9QAZ2M9Tfl3GdkIBMpZboSIqGEBMKFCmrinq/ZUq17HX+x2KW0mgTU7jSlHRTbzyjqBX8TSiqxBF2G+/aTJtSjAlGwuCLy+xhRWmyWxwzWEVRYm7iqdLFrHoBWevTr+G91f/Czkd6uS1ZhOIL0vGuqHPryGSs4VUDGqbPMQo9ZfH1K+kDn9vjIh0MbQTHAUwwTRO7RlQkzQFig0UpqGqQRbUFeEshg=
+    file: 
+      - build/km-darwin-x64
+      - build/km-linux-x64
+      - build/km-win-x64.exe
+      - build/issuing-lambda-linux-x64
+      - build/keymaster-issuing-lambda.zip
+    on:
+      tags: true
+      repo: bsycorp/keymaster
