@@ -8,6 +8,7 @@ script:
   - make
 deploy:
   - provider: script
+    skip_cleanup: true
     script: bash ./scripts/docker-deploy.sh
     on:
       tags: true
