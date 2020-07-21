@@ -107,6 +107,7 @@ type RoleConfig struct {
 	Credentials        []string                     `json:"credentials"`
 	ValidForSeconds    int                          `json:"valid_for_seconds"`
 	CredentialDelivery RoleCredentialDeliveryConfig `json:"credential_delivery"`
+	ClientDefaults     string                       `json:"client_defaults"`
 }
 
 func (c *ConfigPublic) FindRoleByName(name string) *RoleConfig {
