@@ -37,7 +37,7 @@ var c2 = api.Cred{
 
 func TestSaveIAMCredentialsSimple(t *testing.T) {
 	// No existing credentials file, no set profile name
-	credsFile := "scratch/foo"
+	credsFile := "scratch/TestSaveIAMCredentialsSimple"
 	opts1 := &CredWriterOptions{
 		AwsSetProfileName:  "",
 		AwsCredentialsFile: credsFile,
@@ -58,7 +58,7 @@ aws_session_token     = ghi
 
 func TestSaveIAMCredentialsWithForcedProfileName(t *testing.T) {
 	// No existing credentials file, force profile name
-	credsFile := "scratch/bar"
+	credsFile := "scratch/TestSaveIAMCredentialsWithForcedProfileName"
 	opts1 := &CredWriterOptions{
 		AwsSetProfileName:  "default",
 		AwsCredentialsFile: credsFile,
@@ -79,7 +79,7 @@ aws_session_token     = ghi
 
 func TestSaveIAMCredentialsMultiple(t *testing.T) {
 	// No existing credentials file, set multiple creds, no set profile name
-	credsFile := "scratch/baz"
+	credsFile := "scratch/TestSaveIAMCredentialsMultiple"
 	opts1 := &CredWriterOptions{
 		AwsSetProfileName:  "",
 		AwsCredentialsFile: credsFile,
@@ -100,5 +100,47 @@ aws_session_token     = ghiX
 	fooData, err := ioutil.ReadFile(credsFile)
 	assert.Nil(t, err)
 	assert.Equal(t, expect1, string(fooData))
+	assert.NoError(t, os.Remove(credsFile))
+}
+
+func TestMakeSureExistingCredsArentOverwritten(t *testing.T) {
+	// Existing credentials file
+	credsFile := "scratch/TestMakeSureExistingCredsArentOverwritten"
+	opts1 := &CredWriterOptions{
+		AwsSetProfileName:  "",
+		AwsCredentialsFile: credsFile,
+	}
+	err := SaveIAMCredentials(opts1, []api.Cred{c1})
+	assert.Nil(t, err)
+
+	expect1 := `[Foo]
+aws_access_key_id     = abc
+aws_secret_access_key = def
+aws_session_token     = ghi
+
+`
+
+	fooData, err := ioutil.ReadFile(credsFile)
+	assert.Nil(t, err)
+	assert.Equal(t, expect1, string(fooData))
+
+	err = SaveIAMCredentials(opts1, []api.Cred{c2})
+	assert.Nil(t, err)
+
+	expect2 := `[Foo]
+aws_access_key_id     = abc
+aws_secret_access_key = def
+aws_session_token     = ghi
+
+[FooX]
+aws_access_key_id     = abcX
+aws_secret_access_key = defX
+aws_session_token     = ghiX
+
+`
+	fooData2, err := ioutil.ReadFile(credsFile)
+	assert.Nil(t, err)
+	assert.Equal(t, expect2, string(fooData2))
+
 	assert.NoError(t, os.Remove(credsFile))
 }
