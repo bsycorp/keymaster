@@ -78,13 +78,13 @@ func writeIAMCredentialsFile(credsFile string, credsToAdd []string) error {
 	}
 	existingCreds, err := ioutil.ReadFile(credsFile)
 	if err != nil {
+		existingCreds = []byte{}
 		if os.IsNotExist(err) {
 			log.Printf("no existing credentials file: %v", credsFile)
 		} else {
 			return errors.Wrap(err, "failed to open AWS credentials file")
 		}
 	}
-	existingCreds = []byte{}
 	awsCredentialsIni, err := ini.Load(existingCreds, extraCreds...)
 	if err != nil {
 		return errors.Wrap(err, "failed to load existing AWS credentials")
