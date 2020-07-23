@@ -2,7 +2,7 @@ Usage:
 
 ```hcl
 module "issuing_lambda" {
-  source = "github.com/bsycorp/keymaster/terraform/aws/issuing_lambda"
+  source = "github.com/bsycorp/keymaster//terraform/aws/issuing_lambda?ref=v0.1.3"
 
   # The environment label will be added to all named resources
   env_label   = "myproject-npe"
@@ -48,7 +48,7 @@ idp:
       username_attr: name
       email_attr: name     # ignored
       groups_attr: groups
-      redirect_uri: https://workflow.int.btr.place/1/saml/approve
+      redirect_uri: https://your.workflow.engine/1/saml/approve
       # Cert may be specified as s3:// file:// or raw data
       certificate: |
         -----BEGIN CERTIFICATE-----
