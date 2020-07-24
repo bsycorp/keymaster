@@ -3,31 +3,29 @@
  *
  * ```hcl
  * module "issuing_lambda" {
- *   source = "github.com/bsycorp/keymaster//terraform/aws/issuing_lambda?ref=v0.1.3"
+ *   source = "github.com/bsycorp/keymaster//terraform/aws/issuing_lambda?ref=v0.1.4"
  *
- *   # The environment label will be added to all named resources
- *   env_label   = "myproject-npe"
- *
- *   # Keymaster configuration file
+ *   lambda_function_name = "myenv-km-issuer"
  *   configuration = {
  *      CONFIG: "s3://km-myproject-npe/km-myproject-npe.yaml"
  *   }
+ *
+ *   # Can create using issuing_lambda_role module
+ *   lambda_role_arn = aws_iam_role.km.arn
  *
  *   # List of target roles that the lambda may issue creds for
  *   target_role_arns = [
  *    "arn:aws:iam::218296299700:role/test_env_admin"
  *   ]
  *
- *   # List of client accounts that may invoke issuing lambda
- *   client_account_arns = [
+ *   # Artifact to deploy
+ *   artifact_s3_bucket = my-artifact-bucket
+ *   artifact_s3_key = km-issuing-lambda.v0.1.4.zip
+ *
+ *   # List of accounts/roles/users that may invoke issuing lambda
+ *   allowed_invoker_arns = [
  *    "arn:aws:iam::062921715666:root",   # myproj-dev-01
  *   ]
- *
- *   # Enable creation of the configuration bucket and upload
- *   # of the configuration file
- *   config_bucket_enable = true
- *   config_file_upload_enable = true
- *   config_file_name = "${path.module}/km-myproject-npe.yaml"
  *
  *   resource_tags = {
  *     Env          = "myproject-npe"

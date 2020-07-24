@@ -2,31 +2,29 @@ Usage:
 
 ```hcl
 module "issuing_lambda" {
-  source = "github.com/bsycorp/keymaster//terraform/aws/issuing_lambda?ref=v0.1.3"
+  source = "github.com/bsycorp/keymaster//terraform/aws/issuing_lambda?ref=v0.1.4"
 
-  # The environment label will be added to all named resources
-  env_label   = "myproject-npe"
-
-  # Keymaster configuration file
+  lambda_function_name = "myenv-km-issuer"
   configuration = {
      CONFIG: "s3://km-myproject-npe/km-myproject-npe.yaml"
   }
+
+  # Can create using issuing_lambda_role module
+  lambda_role_arn = aws_iam_role.km.arn
 
   # List of target roles that the lambda may issue creds for
   target_role_arns = [
    "arn:aws:iam::218296299700:role/test_env_admin"
   ]
 
-  # List of client accounts that may invoke issuing lambda
-  client_account_arns = [
+  # Artifact to deploy
+  artifact_s3_bucket = my-artifact-bucket
+  artifact_s3_key = km-issuing-lambda.v0.1.4.zip
+
+  # List of accounts/roles/users that may invoke issuing lambda
+  allowed_invoker_arns = [
    "arn:aws:iam::062921715666:root",   # myproj-dev-01
   ]
-
-  # Enable creation of the configuration bucket and upload
-  # of the configuration file
-  config_bucket_enable = true
-  config_file_upload_enable = true
-  config_file_name = "${path.module}/km-myproject-npe.yaml"
 
   resource_tags = {
     Env          = "myproject-npe"
@@ -104,27 +102,19 @@ No requirements.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| artifact\_file | Local path to lambda deployment package. Conflicts with artifact\_s3\* | `string` | `null` | no |
-| artifact\_s3\_bucket | S3 bucket with existing keymaster deployment artifact (lambda zip file) | `string` | `null` | no |
-| artifact\_s3\_key | S3 key with existing keymaster deployment artifcat (lambda zip file) | `string` | `null` | no |
-| client\_account\_arns | List of accounts with permission to invoke km issuing api | `list(string)` | `[]` | no |
-| config\_bucket\_enable | Create the config bucket | `bool` | `false` | no |
-| config\_bucket\_name | Name of bucket to store configuration file | `string` | `""` | no |
-| config\_file\_name | Name of local file to upload for km configuration | `string` | `""` | no |
-| config\_file\_upload\_enable | Enable uploading a configuration file for km | `bool` | `false` | no |
+| allowed\_invoker\_arns | List of accounts / principals with permission to invoke km issuing api | `list(string)` | `[]` | no |
+| artifact\_s3\_bucket | S3 bucket with existing keymaster deployment artifact (lambda zip file) | `string` | n/a | yes |
+| artifact\_s3\_key | S3 key with existing keymaster deployment artifact (lambda zip file) | `string` | n/a | yes |
 | configuration | Keymaster configuration (environment variables) | `map(string)` | n/a | yes |
-| env\_label | The tag label of the environment km will be deployed into (e.g. btr-place) | `string` | n/a | yes |
-| lambda\_function\_name | Lambda function name to create | `string` | `""` | no |
-| lambda\_role\_arn | Set this to override the IAM role used by the km issuing lambda | `string` | `""` | no |
+| lambda\_function\_name | Lambda function name to create (override) | `string` | `""` | no |
+| lambda\_role\_arn | Set this to override the IAM role used by the km issuing lambda | `string` | n/a | yes |
 | reserved\_concurrent\_executions | Reserved executions for each keymaster lambda | `number` | `-1` | no |
 | resource\_tags | Map of tags to apply to all AWS resources | `map(string)` | `{}` | no |
-| target\_role\_arns | List of roles which km may issue credentials for | `list(string)` | `[]` | no |
 | timeout | Lambda timeout | `number` | `30` | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| configuration\_bucket\_name | The name of the km configuration bucket. Will be empty if not configured. |
 | issuing\_lambda\_arn | The ARN of the keymaster issuing lambda. |
 
