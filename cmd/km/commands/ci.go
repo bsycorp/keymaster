@@ -86,8 +86,34 @@ func ci(cmd *cobra.Command, args []string) {
 	if targetRole == nil {
 		log.Fatalf("Target role #{roleFlag} not found in config")
 	}
+
+	// Run workflow to get assertions.
+	assertions := runWorkflow(targetRole, &configResp.Config, kmWorkflowStartResponse.IdpNonce)
+
+	creds, err := kmApi.WorkflowAuth(&api.WorkflowAuthRequest{
+		Username:     usernameFlag,
+		Role:         roleFlag,
+		IdpNonce:     kmWorkflowStartResponse.IdpNonce,
+		IssuingNonce: kmWorkflowStartResponse.IssuingNonce,
+		Assertions:   assertions,
+	})
+	if err != nil {
+		log.Fatal(errors.Wrap(err, "error calling kmApi.WorkflowAuth"))
+	}
+
+	credWriterOptions := client.CredWriterOptions{
+		AwsSetProfileName: awsSetProfileNameFlag,
+		AwsCredentialsFile: awsCredentialsFileFlag,
+	}
+	err = client.SaveIAMCredentials(&credWriterOptions, creds.Credentials)
+	if err != nil {
+		log.Errorf( "error writing IAM credentials file: %v", err)
+	}
+}
+
+func runWorkflow(targetRole *api.RoleConfig, config *api.ConfigPublic, idpNonce string) []string {
 	workflowPolicyName := targetRole.Workflow
-	configWorkflowPolicy := configResp.Config.Workflow.FindPolicyByName(workflowPolicyName)
+	configWorkflowPolicy := config.Workflow.FindPolicyByName(workflowPolicyName)
 	if configWorkflowPolicy == nil {
 		log.Fatalf("workflow policy %s not found in config", workflowPolicyName)
 	}
@@ -99,7 +125,14 @@ func ci(cmd *cobra.Command, args []string) {
 		ApproverRoles:       configWorkflowPolicy.ApproverRoles,
 	}
 
-	workflowBaseUrl := configResp.Config.Workflow.BaseUrl
+	// If no approval or identify required, skip all workflow. This may also
+	// be useful in emergencies if workflow is down...
+	if len(workflowPolicy.IdentifyRoles) == 0 && len(workflowPolicy.ApproverRoles) == 0 {
+		log.Println("Skipping workflow - no identify or approval required")
+		return []string{}
+	}
+
+	workflowBaseUrl := config.Workflow.BaseUrl
 	log.Println("Using workflow engine:", workflowBaseUrl)
 	workflowApi, err := workflow.NewClient(workflowBaseUrl)
 	if err != nil {
@@ -109,7 +142,7 @@ func ci(cmd *cobra.Command, args []string) {
 
 	// And start a workflow session
 	startResult, err := workflowApi.Create(context.Background(), &workflow.CreateRequest{
-		IdpNonce: kmWorkflowStartResponse.IdpNonce,
+		IdpNonce: idpNonce,
 		Requester: workflow.Requester{
 			Name:     nameFlag,
 			Username: usernameFlag,
@@ -120,7 +153,7 @@ func ci(cmd *cobra.Command, args []string) {
 			DetailsURI:  detailsUrlFlag,
 		},
 		Target: workflow.Target{
-			EnvironmentName:         configResp.Config.Name,
+			EnvironmentName:         config.Name,
 			EnvironmentDiscoveryURI: issuerFlag,
 		},
 		Policy: workflowPolicy,
@@ -158,24 +191,5 @@ func ci(cmd *cobra.Command, args []string) {
 		}
 	}
 	log.Printf("got: %d assertions from workflow", len(getAssertionsResult.Assertions))
-
-	creds, err := kmApi.WorkflowAuth(&api.WorkflowAuthRequest{
-		Username:     usernameFlag,
-		Role:         roleFlag,
-		IdpNonce:     kmWorkflowStartResponse.IdpNonce,
-		IssuingNonce: kmWorkflowStartResponse.IssuingNonce,
-		Assertions:   getAssertionsResult.Assertions,
-	})
-	if err != nil {
-		log.Fatal(errors.Wrap(err, "error calling kmApi.WorkflowAuth"))
-	}
-
-	credWriterOptions := client.CredWriterOptions{
-		AwsSetProfileName: awsSetProfileNameFlag,
-		AwsCredentialsFile: awsCredentialsFileFlag,
-	}
-	err = client.SaveIAMCredentials(&credWriterOptions, creds.Credentials)
-	if err != nil {
-		log.Errorf( "error writing IAM credentials file: %v", err)
-	}
+	return getAssertionsResult.Assertions
 }
