@@ -92,6 +92,19 @@ func (c *Client) isError(resp *lambda.InvokeOutput) error {
 	return nil
 }
 
+func isRetryableLambdaException(e error) bool {
+	switch e.(type) {
+	default:
+		return false
+	case *lambda.ResourceNotReadyException:
+		return true
+	case *lambda.TooManyRequestsException:
+		return true
+	case *lambda.EC2ThrottledException:
+		return true
+	}
+}
+
 func (c *Client) rpc(req interface{}, resp interface{}) error {
 	if c.Debug > 0 {
 		log.Println("rpc request: ", spew.Sdump(req))
@@ -100,18 +113,17 @@ func (c *Client) rpc(req interface{}, resp interface{}) error {
 	if err != nil {
 		return errors.Wrap(err, "rpc marshal")
 	}
-	// Loop until a non-retryable error
+	// Loop spins until a non-retryable error occurs
 	for {
 		result, err := c.lambdaClient.Invoke(&lambda.InvokeInput{
 			FunctionName: aws.String(c.FunctionName),
 			Payload:      payload,
 		})
 		if err != nil {
-			// Is this a retryable error?
-			if _, ok := err.(*lambda.ResourceNotReadyException); ok {
-				log.Printf("rpc: lambda.ResourceNotReadyException, waiting for: %v", RpcRetryInterval)
+			if isRetryableLambdaException(err) {
+				log.Printf("rpc: retryable error: %v, waiting for: %v", err, RpcRetryInterval)
 				time.Sleep(RpcRetryInterval)
-				continue
+				continue // Retry
 			}
 			return errors.Wrap(err, "rpc invoke")
 		}
