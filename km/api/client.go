@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	log "github.com/sirupsen/logrus"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
@@ -13,6 +14,8 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 )
+
+const RpcRetryInterval = 15 * time.Second
 
 type Client struct {
 	//    * Function name - my-function (name-only), my-function:v1 (with alias).
@@ -89,6 +92,19 @@ func (c *Client) isError(resp *lambda.InvokeOutput) error {
 	return nil
 }
 
+func isRetryableLambdaException(e error) bool {
+	switch e.(type) {
+	default:
+		return false
+	case *lambda.ResourceNotReadyException:
+		return true
+	case *lambda.TooManyRequestsException:
+		return true
+	case *lambda.EC2ThrottledException:
+		return true
+	}
+}
+
 func (c *Client) rpc(req interface{}, resp interface{}) error {
 	if c.Debug > 0 {
 		log.Println("rpc request: ", spew.Sdump(req))
@@ -97,25 +113,33 @@ func (c *Client) rpc(req interface{}, resp interface{}) error {
 	if err != nil {
 		return errors.Wrap(err, "rpc marshal")
 	}
-	result, err := c.lambdaClient.Invoke(&lambda.InvokeInput{
-		FunctionName: aws.String(c.FunctionName),
-		Payload:      payload,
-	})
-	if err != nil {
-		return errors.Wrap(err, "rpc invoke")
-	}
-	if err = c.isError(result); err != nil {
-		return errors.Wrap(err, "rpc error")
-	}
-	err = json.Unmarshal(result.Payload, resp)
-	if err != nil {
-		if c.Debug > 0 {
-			log.Println("rpc raw response:" + string(result.Payload))
+	// Loop spins until a non-retryable error occurs
+	for {
+		result, err := c.lambdaClient.Invoke(&lambda.InvokeInput{
+			FunctionName: aws.String(c.FunctionName),
+			Payload:      payload,
+		})
+		if err != nil {
+			if isRetryableLambdaException(err) {
+				log.Printf("rpc: retryable error: %v, waiting for: %v", err, RpcRetryInterval)
+				time.Sleep(RpcRetryInterval)
+				continue // Retry
+			}
+			return errors.Wrap(err, "rpc invoke")
 		}
-		return errors.Wrap(err, "rpc unmarshal")
+		if err = c.isError(result); err != nil {
+			return errors.Wrap(err, "rpc error")
+		}
+		err = json.Unmarshal(result.Payload, resp)
+		if err != nil {
+			if c.Debug > 0 {
+				log.Println("rpc raw response:" + string(result.Payload))
+			}
+			return errors.Wrap(err, "rpc unmarshal")
+		}
+		if c.Debug > 0 {
+			log.Println("rpc response:", spew.Sdump(resp))
+		}
+		return nil
 	}
-	if c.Debug > 0 {
-		log.Println("rpc response:", spew.Sdump(resp))
-	}
-	return nil
 }
