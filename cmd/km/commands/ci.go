@@ -30,6 +30,8 @@ All fields are required.
 	Run: ci,
 }
 
+const GetAssertionsPollDelay = 5 * time.Second
+
 var usernameFlag string
 var nameFlag string
 var emailFlag string
@@ -178,10 +180,12 @@ func runWorkflow(targetRole *api.RoleConfig, config *api.ConfigPublic, idpNonce 
 		})
 		if err != nil {
 			log.Println(errors.Wrap(err, "error calling workflowApi.GetAssertions"))
+			time.Sleep(GetAssertionsPollDelay)
+			continue
 		}
 		log.Printf("workflow state: %s", getAssertionsResult.Status)
 		if getAssertionsResult.Status == "CREATED" {
-			time.Sleep(5 * time.Second)
+			time.Sleep(GetAssertionsPollDelay)
 		} else if getAssertionsResult.Status == "COMPLETED" {
 			break
 		} else if getAssertionsResult.Status == "REJECTED" {
