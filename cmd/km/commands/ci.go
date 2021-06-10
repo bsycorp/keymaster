@@ -30,7 +30,7 @@ All fields are required.
 	Run: ci,
 }
 
-const GetAssertionsPollDelay 5 * time.Second
+const GetAssertionsPollDelay = 5 * time.Second
 
 var usernameFlag string
 var nameFlag string
